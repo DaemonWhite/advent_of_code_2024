@@ -10,3 +10,6 @@ name = "Day_01"
 path = "day01/day01.rs"
 
 
+[[example]]
+name = "Day_02"
+path = "day02/day02.rs"

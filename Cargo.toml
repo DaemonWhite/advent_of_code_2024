@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+regex = "1.11.1"
 
 [[example]]
 name = "Day_01"
@@ -13,3 +14,11 @@ path = "day01/day01.rs"
 [[example]]
 name = "Day_02"
 path = "day02/day02.rs"
+
+[[example]]
+name = "Day_03"
+path = "day03/day03.rs"
+
+[[example]]
+name = "Day_04"
+path = "day04/day04.rs"

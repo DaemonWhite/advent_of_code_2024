@@ -1,5 +1,6 @@
+use std::collections::HashMap;
 use std::fs;
-use std::ops::AddAssign;
+use std::ops::{Add, AddAssign};
 use std::path::Path;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
@@ -7,6 +8,17 @@ struct Point {
     x: isize,
     y: isize
 }
+
+impl Add for Point {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
 
 impl AddAssign for Point {
     fn add_assign(&mut self, other: Self) {
@@ -26,7 +38,6 @@ enum POSITION {
 
 struct Guard {
     position: Point,
-    next_postion: Point,
     collider: char,
     limit_start_wordl: Point,
     limit_end_world: Point,
@@ -35,7 +46,7 @@ struct Guard {
 
 impl Guard {
     fn new(position: Point, collider: char, limit_start_wordl: Point, limit_end_world: Point) -> Self {
-        Self {position, next_postion: Point {x: -1, y: 0} ,collider,limit_start_wordl, limit_end_world,orientation: POSITION::UP}
+        Self {position,collider,limit_start_wordl, limit_end_world,orientation: POSITION::UP}
     }
 
     fn rotate(&mut self) {
@@ -48,7 +59,12 @@ impl Guard {
     }
 
     fn get_next_position(&mut self) -> Point{
-        return self.next_postion;
+        match self.orientation {
+            POSITION::UP    => self.position + Point {x: -1, y: 0},
+            POSITION::RIGHT => self.position + Point {x: 0, y: 1},
+            POSITION::DOWN  =>  self.position + Point {x: 1, y: 0},
+            POSITION::LEFT  => self.position + Point {x:0, y: -1}
+        }
     }
 
     fn translate(&mut self) {
@@ -80,7 +96,7 @@ impl Guard {
 }
 
 struct GuardMap {
-    totla_move: usize,
+    history_position: HashMap<String,Point>,
     map: Vec<String>,
     guard: Guard,
 }
@@ -93,6 +109,7 @@ impl GuardMap {
             Point {x:0,y:0},
             Point {x:0,y:0}
         );
+        // Detect start position
         for i in 0..map.len() {
             for j in 0..map[i].len() {
                 if map[i].chars().nth(j).unwrap() == '^' {
@@ -105,19 +122,20 @@ impl GuardMap {
                 }
             }
         }
-        Self {totla_move: 0, map: map, guard: guard}
+        Self {history_position: HashMap::new(), map: map, guard: guard}
+    }
+
+    fn get_nb_case_position_guard(&self) -> usize {
+        self.history_position.len()
     }
     
     fn play(&mut self) {
-        let desination = false;
-        let mut count = 0;
         while !self.guard.verif_limit() {
             let i = self.guard.get_next_position();
-            println!("{:?}", i);
-            self.guard.move_guard(self.map[i.x as usize].chars().nth(i.y as usize).unwrap() );
-            count += 1
+            self.guard.move_guard(self.map[i.x as usize].chars().nth(i.y as usize).unwrap());
+            let position = self.guard.position;
+            self.history_position.insert(format!("{}x{}", position.x, position.y), position);
         }
-        println!("{count}")
     }
    
 }
@@ -128,9 +146,11 @@ fn read_input(file_path: &Path) -> Vec<String> {
 }
 
 fn main() {
-    let file_path = Path::new("day06/_input.txt");
+    let file_path = Path::new("day06/input.txt");
     println!("In file {}", file_path.display());
     let map = read_input(file_path);
     let mut guard_map = GuardMap::new(map);
-    guard_map.play()
+    guard_map.play();
+
+    println!("part 1 -> {}", guard_map.get_nb_case_position_guard());
 }

@@ -50,6 +50,20 @@ impl Wordl {
         self.robot.append(&mut robots.clone());
     }
 
+    fn detect_tree(&self) -> bool {
+        let mut detected = true;
+
+        for index_robot in 0..self.robot.len() {
+            for index_robotb in 0..self.robot.len() {
+                if self.robot[index_robot].position == self.robot[index_robotb].position && index_robot != index_robotb{
+                    detected = false;
+                    break;
+                }
+            }
+        }
+        detected
+    }
+
     fn quandrants(&self) -> usize {
         let exclude_y = self.heigth / 2;
         let exclude_x = self.width / 2;
@@ -160,7 +174,11 @@ fn main() {
 
     let mut world_robot = Wordl::new_world(101, 103);
     world_robot.append_robot(&list_robot);
-    /* 
+
+    let mut word_tree_robot = Wordl::new_world(101, 103);
+    word_tree_robot.append_robot(&list_robot);
+    
+    /* Test part 1
     let mut world_robot_test = Wordl::new_world(11, 7);
     let r: Vec<Robot> = vec![Robot {
         position: Point { x: 2, y: 4 },
@@ -180,6 +198,15 @@ fn main() {
         world_robot.update();
     }
 
+    let mut count = 0;
+    while !word_tree_robot.detect_tree() {
+        word_tree_robot.update();
+        count += 1;
+    }
+
     println!("{world_robot}");
-    println!("{}", world_robot.quandrants());
+    println!("part 1 -> {}", world_robot.quandrants());
+
+    println!("{word_tree_robot}");
+    println!("part 2 -> {count}");
 }

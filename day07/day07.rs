@@ -1,10 +1,10 @@
-use std::{fs, path::Path, usize};
+use std::{fs, path::Path, result, usize};
 
 // Convertie en tableau de binaire
 fn operator_position(size: usize,mut n: usize, modulo: usize) -> Vec<usize> {
     let bits: Vec<usize> = (0..size).map(|_| {
         let r = n % modulo; 
-        n = n / 2; 
+        n = n / modulo; 
         r
     }).collect();
     bits
@@ -19,10 +19,10 @@ fn verif_equation(result:usize, calc: Vec<&str>, n_factor: usize) -> bool {
     }
 
     let len: usize = calc.len();
-    let binary: usize = 2;
-    //println!("{len}");
-    for i in 0..binary.pow((len) as u32 )  {
-        let position = operator_position(calc.len(), i, 2);
+    let factor: usize = n_factor.pow((len) as u32);
+    
+    for i in 0..factor  {
+        let position = operator_position(calc.len(), i, n_factor);
         let mut total = calc_usize[0];
         
         // Additionne ou multiplie chaque possibiliter
@@ -31,6 +31,7 @@ fn verif_equation(result:usize, calc: Vec<&str>, n_factor: usize) -> bool {
             match position[i-1] {
                 0 => total += calc_usize[i],
                 1 => {total *= calc_usize[i]},
+                2 => {total = format!("{}{}", total, calc_usize[i]).parse::<usize>().unwrap()  }
                 _ => todo!()
             }
         }
@@ -56,12 +57,21 @@ fn main() {
     println!("In file {}", file_path.display());
     let input = read_input(file_path);
     let mut total: usize = 0;
+    let mut total_part_two: usize = 0;
     println!("Teste binaire{:?}", operator_position(4, 2, 2));
     for line in input {
         let fragment_line: Vec<&str> = line.split(':').collect();
-        if verif_equation(fragment_line[0].parse().unwrap(), fragment_line[1].split_whitespace().collect(), 3) {
-            total += fragment_line[0].parse::<usize>().unwrap();
+        let result = fragment_line[0].parse().unwrap();
+        let calc: Vec<&str> = fragment_line[1].split_whitespace().collect();
+
+        if verif_equation(result, calc.clone(), 2) {
+            total += result;
+        }
+
+        if verif_equation(result, calc, 3){
+            total_part_two += result;
         }
     }
     println!("part 1 -> {total}");
+    println!("part 1 -> {total_part_two}");
 }

@@ -24,9 +24,25 @@ name = "Day_04"
 path = "day04/day04.rs"
 
 [[example]]
+name = "Day_05"
+path = "day05/day05.rs"
+
+[[example]]
 name = "Day_06"
 path = "day06/day06.rs"
 
 [[example]]
 name = "Day_07"
 path = "day07/day07.rs"
+
+[[example]]
+name = "Day_10"
+path = "day10/day10.rs"
+
+[[example]]
+name = "Day_12"
+path = "day12/day12.rs"
+
+[[example]]
+name = "Day_14"
+path = "day14/day14.rs"

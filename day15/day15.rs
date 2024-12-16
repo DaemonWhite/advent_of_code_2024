@@ -74,39 +74,76 @@ impl AddAssign for Point {
     }
 }
 
+
+#[derive(Debug, Clone, Copy)]
+struct Boxe {
+    position_forward: Point,
+    position_extended: u64
+}
+
+impl Boxe {
+    fn translate(&mut self, p: Point) {
+        self.position_forward += p;
+    }
+
+    fn contains(&self, p: Point) -> bool {
+        if self.position_forward == p {
+            return true;
+        }
+
+        for i in 1..(self.position_extended + 1) {
+            if (self.position_forward + Point {x: i as i64, y: 0}) == p {
+                return true;
+            }
+        }
+        
+        false
+    }
+}
+
 struct World {
     robot: Point,
-    boxes: Vec<Point>,
+    boxes: Vec<Boxe>,
     collider: Vec<Point>,
     width: u32,
-    heigth: u32
+    heigth: u32,
+    extended: bool
 }
 
 impl World {
-    fn new(map: &Vec<Vec<char>>) -> Self {
+    fn new(map: &Vec<Vec<char>>, extended: bool) -> Self {
         let mut robot: Point = Point { x: 0, y: 0 };
-        let mut boxes: Vec<Point> = Vec::new();
+        let mut boxes: Vec<Boxe> = Vec::new();
         let mut collider: Vec<Point> = Vec::new();
+        let mut offset = 1;
+        if extended {
+            offset = 2;
+        }
+
         for y in 0..map.len() {
             for x in 0..map[y].len() {
                 if '@' == map[y][x] {
-                    robot = Point {x: x as i64, y: y as i64};
+                    robot = Point {x: x as i64 * offset , y: y as i64};
                 } else if 'O' == map[y][x] {
-                    boxes.push(Point {x: x as i64, y: y as i64} );
+                    boxes.push(Boxe { position_forward: Point {x: x as i64 * offset, y: y as i64 }, position_extended:  if extended {1} else {0}} );
                 } else if '#' == map[y][x]{
-                    collider.push(Point { x: x as i64, y: y as i64 });
+                    collider.push(Point { x: x as i64 * offset, y: y as i64});
+                    if extended {collider.push(Point { x: x as i64 * offset + 1, y: y as i64}); }
                 }
             }
         }
 
-        Self {robot, boxes, collider, width: map[0].len() as u32, heigth: map.len() as u32}
+        Self {robot, boxes, collider, width: map[0].len() as u32 * offset as u32 + 1, heigth: map.len() as u32, extended}
     }
 
     fn sum_coordonaite_box(&self) -> usize {
         let mut sum: usize = 0;
-        for boxe in &self.boxes {
-            sum += 100 * boxe.y as usize + boxe.x as usize;
+        if !self.extended {
+            for boxe in &self.boxes {
+                sum += 100 * boxe.position_forward.y as usize + boxe.position_forward.x as usize;
+            }
         }
+        
         sum
     }
 
@@ -119,29 +156,47 @@ impl World {
 
         while is_movable {
             let nex_position = &(*position + move_posision * offset);
-            println!("{:?}", nex_position);
             if self.collider.contains( nex_position ) {
                 is_movable = false;
-            } else if self.boxes.contains(nex_position) {
-                move_point.push(
-                    self.boxes.iter().position( |f| nex_position == f ).unwrap()
-                );
+            } else if self.boxes.iter().find(|f| { f.contains(*nex_position) } ).is_some() {
+                let position = self.boxes.iter_mut().position( |f| f.contains(*nex_position) ).unwrap();
+                
+                print!("{position}->");
+
+                /*
+                .......
+                ..OOOO.
+                ...OO..
+                ....@..
+                ....^..
+                Le problème et que seul les objet toucher par le point d'impacte sont toucher
+                ce qui donne 
+                ....OO.
+                ..OOO.. Il faut donc trouver un moyent de faire avancer les boites sans qu'il y'est de conflit
+                ....@..
+                .......
+                ....^..
+                 */
+
+                if !move_point.contains(&position) {
+                    move_point.push(
+                        position
+                    );
+                } 
+                
 
             } else {
                 is_move = true;
                 is_movable = false;
             }
+
             offset += Point {x:1, y:1};
         }
-        offset = Point {x: 1, y: 1};
 
         if is_move {
-            println!("a");
             *position += move_posision;
             for i in move_point {
-                self.boxes[i] = *position + move_posision * offset;
-                println!("{:?}", self.boxes[i]);
-                offset += Point {x:1, y:1};
+                self.boxes[i].translate(move_posision);
             }
         }
     }
@@ -174,7 +229,10 @@ impl fmt::Display for World {
         map[self.robot.y as usize][self.robot.x as usize] = '@';
 
         for boxe in self.boxes.clone() {
-            map[boxe.y as usize][boxe.x as usize] = 'O'
+            map[boxe.position_forward.y as usize][boxe.position_forward.x as usize] = 'O';
+            for i in 1..(boxe.position_extended + 1) {
+                map[boxe.position_forward.y as usize][boxe.position_forward.x as usize + i as usize ] = 'O';
+            }
         }
 
         for collider in self.collider.clone() {
@@ -192,6 +250,7 @@ impl fmt::Display for World {
     }
 }
 
+#[derive(Clone, Copy)]
 enum Move {
     UP,
     DOWN,
@@ -229,19 +288,31 @@ fn read_input(file_path: &Path) -> (Vec<Vec<char>>, Vec<Move> ) {
     return (map, list_move);
 }
 
+/*
+
+Doit êtres fait avec une boxe pour syncroniser la boite cortement
+
+ */
+
+
 fn main() {
-    let file_path = Path::new("day15/input.txt");
+    let file_path = Path::new("day15/_input3.txt");
     println!("In file {}", file_path.display());
     let (map, move_robot) = read_input(file_path);
     println!("{:?}", map);
-    let mut world = World::new(&map);
+    let mut world = World::new(&map, false);
+    let mut second_world = World::new(&map, true);
 
+    println!("{second_world}");
 
     for mv in move_robot {
         world.move_robot(mv);
+        second_world.move_robot(mv);
+        println!("{second_world}");
     }
 
     
 
-    println!("{world} part 1 -> {} ", world.sum_coordonaite_box());
+    println!("{world} \n part 1 -> {} ", world.sum_coordonaite_box());
+    println!("{second_world} \n part 2 -> {}", second_world.sum_coordonaite_box());
 }
